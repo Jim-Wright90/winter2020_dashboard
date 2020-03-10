@@ -1,0 +1,417 @@
+---
+title: "EDLD 610 Winter 2020 Final Project - Jim Wright"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    social: menu
+    source_code: embed
+    vertical_layout: scroll
+    theme: cerulean
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(tidyverse)
+library(rio)
+library(here)
+library(colorblindr)
+library(gghighlight)
+library(forcats)
+library(ggrepel)
+library(gt)
+library(knitr)
+library(kableExtra)
+library(reactable)
+library(plotly)
+
+opts_chunk$set(echo = FALSE,
+               fig.width = 5,
+               fig.height = 6)
+
+theme_set(theme_minimal(base_size = 8))
+
+
+all_ages <- import(here("data", "all-ages.csv"),
+               setclass = "tbl_df") %>% 
+               janitor::clean_names() 
+
+
+grad_students <- import(here("data", "grad-students.csv"),
+               setclass = "tbl_df") %>% 
+               janitor::clean_names() 
+
+majors_lists <- import(here("data", "majors-list.csv"),
+               setclass = "tbl_df") %>% 
+               janitor::clean_names() 
+
+recent_grads <- import(here("data", "recent-grads.csv"),
+               setclass = "tbl_df") %>% 
+               janitor::clean_names() 
+
+women_stem <- import(here("data", "women-stem.csv"),
+               setclass = "tbl_df") %>% 
+               janitor::clean_names() 
+```
+
+# Plot 1
+
+*_Description of Data_* {.sidebar}
+--------
+
+The data for this project consists of five data sets from the FiveThirtyEight GitHub page. (https://github.com/fivethirtyeight/data/tree/master/college-majors). All data is from the American Community Survey 2010-2012 Public Use Microdata Series. The plots for this project exclusively used the recent_grads.csv and women_stem.csv data sets, which both contain data on basic earnings and labor force information. Both data sets were arranged in order of median salary for reported college major on the survey. 
+
+*_Plot 1 Narrative:_* I wanted to plot 1 to communicate median salary per either college major or major category. Since there are so many majors in the data set, I decided it would be easier to begin with major category as there were only 16 values. In version 2, I highlighted the education category as we learned in class. For versions 3 and 4, I wanted to explore this distribution with other plots besides a bar graph, so I tried a histogram and density plot with ggridges. For the final version, I decided to go back to the barplot by focusing on the top 20 median salaries per college majors and use color in the plot to identify the major category. I factor reorderded to arrange the college majors on the y-axis (via coord_flip) from greatest to least. As displayed on the plot, the most lucrative college majors are in the major category Engineering. 
+
+
+Column {.tabset data-width=1000}
+-----------------------------------------------------------------------
+
+### Version 1
+```{r plot 1 data cleaning, include=FALSE}
+
+recent_grads %>% 
+  select(major, median, p25th, p75th)
+
+```
+
+```{r plot 1 version 1}
+ggplot(recent_grads, aes(major_category, median)) +
+  geom_col() +
+  coord_flip()
+```
+
+### Version 2
+```{r plot 1, version 2}
+
+ggplot(recent_grads, aes(fct_reorder(major_category, median), median)) +
+  geom_col() +
+  geom_col(fill = "cornflowerblue",
+  data = filter(recent_grads, major_category == "Education")) +  
+  coord_flip()
+
+```
+
+### Version 3
+```{r plot 1, version 3}
+ggplot(recent_grads, aes(median)) +
+  geom_histogram(fill = "#56B4E9",
+                 color = "black", 
+                 alpha = 0.9,
+                 bins = 25) +
+  theme_minimal(base_size = 15) +
+  scale_x_continuous("Median Salary of College Majors", labels = scales::dollar) +
+  theme(panel.grid.major.y = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        panel.grid.major.x = element_line(color = "gray80")) +
+  labs(x = "Median Salary of College Majors",
+       y = "Total",
+       title = "Distribution of Median Salaries \nper College Major") +
+  theme(plot.title = element_text(hjust = 0.5))
+
+```
+
+### Version 4
+```{r plot 1, version 4}
+ggplot(recent_grads, aes(median, major_category)) +
+  ggridges::geom_density_ridges(color = "white",
+                                fill = "#A9E5C5") +
+  theme_minimal(base_size = 10) +
+  scale_x_continuous("Median Salary of College Majors", labels = scales::dollar) +
+  theme(panel.grid.major.y = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        panel.grid.major.x = element_line(color = "gray80")) +
+  labs(x = "Median Salary Distribution", 
+       y = "Major Category",
+       title = "Distribution of Median Salaries \nby Major Category") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+
+### Final Version
+```{r plot 1 final version data cleaning, include=FALSE}
+median_top_20 <- recent_grads %>% 
+  arrange(desc(median)) %>% 
+  slice(1:20)
+```
+
+```{r plot 1, final version}
+ggplot(median_top_20, aes(fct_reorder(major, median), median)) +
+  geom_col(aes(fill = major_category),
+  alpha = 0.7) +
+  geom_text(aes(major, median, label = scales::dollar(median/1000)),
+            hjust = 1.1,
+            nudge_y = 0.02,
+            size = 3,
+            color = "white") +
+  scale_fill_brewer(palette = "Dark2") +
+  coord_flip() +
+  scale_y_continuous("Median Salary", 
+                     labels = scales::dollar) +
+  theme(panel.grid.major.y = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        panel.grid.major.x = element_line(color = "gray80")) +
+  theme(plot.title = element_text(color = "black", size = 12, face = "bold", hjust = 0.5),
+        legend.position = "bottom") +
+  labs(x = "College Major",
+       y = "Median Salary (Thousands)",
+       fill = "Major Category",
+       title = "Top 20 Median Salaries \nby College Major") 
+
+
+
+```
+
+# Plot 2
+
+Description of Plot 2 {.sidebar}
+--------
+*_Plot 2 Narrative:_* For plot 2, I wanted to explore unemployment rates across college majors and major categories. The data set contains continuous variables for the number of men, women, and combined total for every college major. In addtion, there are variables with specific values with the number of respondees employed in college jobs, non-college jobs, low-wage jobs, and unemployed for all college majores. To use the values as percentages in my plots, I first mutated all of these variables into percentages. I then used pivot_longer to create a specific variable with two values: percent_women and percent_men for each college major. Similar to the first plot, because there were so many values, I thought it would be hard to plot the entire data set; therefore, I decided to filter by data set by mean unemployment rate and mean median salary. Version 1 of the plot is a scatterplot of college majors representing a median salary above the average of $40,000 and unemployment rate below the average of 6.5%. Version 2 still requires a lot of work, but the goal is to represent the unemployment rate in a bar plot per each major category. In the final version, I decided to return to the scatterplot and sliced the top 20 highest unemployment rates per college major. I placed this value on the x-axis and compared it to the major's employment rate in college major jobs in the y-axis. I then used color to identify the major category and geom_text to label each major.
+
+Column {.tabset data-width=1000}
+-----------------------------------------------------------------------
+
+### Version 1
+```{r plot 2 data cleaning, include=FALSE}
+
+percentages <- recent_grads %>% 
+  mutate(percent_men = men/total, 
+         percent_women = women/total, 
+         total_jobs = college_jobs + non_college_jobs + low_wage_jobs, 
+         percent_college_jobs = college_jobs/total_jobs,
+         percent_non_college_jobs = non_college_jobs/total_jobs, 
+         percent_low_wage_jobs = low_wage_jobs/total_jobs,
+         unemployment_rate_percentage = unemployment_rate)
+
+percents_tidy <- percentages %>% 
+  pivot_longer(
+    cols = c(22:23),
+    names_to = "sex",
+    values_to = "sex_percentages"
+  ) 
+
+percentages %>% 
+  summarize(mean(median))
+
+percentages %>% 
+  summarize(mean(unemployment_rate_percentage))
+
+plot_2_a <- percents_tidy %>% 
+  filter(median >= 40000,
+         unemployment_rate_percentage <= 6.50)
+
+plot_2_b <- percents_tidy %>% 
+  filter(median <= 40000,
+         unemployment_rate_percentage >= 6.50)
+```
+
+```{r plot 2 version 1}
+ggplot(plot_2_a, aes(unemployment_rate_percentage, median, color = major_category)) +
+  geom_point(size = 2,
+             alpha = 0.5) +
+  scale_color_viridis_d(name = "Major Category") +
+  theme(plot.title = element_text(color = "black", 
+                                  size = 12, 
+                                  face = "bold", 
+                                  hjust = 0.5),
+        legend.position = "bottom") +
+  scale_x_log10("Unemployment Rate Percentage", labels = scales::percent) +
+  scale_y_log10("Median Salary", labels = scales::dollar) +
+  theme(panel.grid.major.y = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        panel.grid.major.x = element_line(color = "gray80")) +
+  labs(x = "Unemployment Rate Percentage",
+       y = "Median Salary",
+       title = "Comparison of Employment Rate to Median Salary",
+       subtitle = "College Majors with Above Average Median Salary and Below Average Unemployment Rate") 
+
+```
+
+### Version 2
+```{r plot 2 version 2}
+ggplot(percents_tidy, aes(fct_reorder(major_category, unemployment_rate), unemployment_rate)) +
+  geom_col(fill = "cornflowerblue",
+           alpha = 0.7) +
+  geom_text(aes(major_category, unemployment_rate, label = paste0(round(unemployment_rate), "%",
+            size = 2))) +
+  coord_flip() +
+  scale_y_continuous("Unemployment Rate", labels = scales::percent) +
+  theme(panel.grid.major.y = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        panel.grid.major.x = element_line(color = "gray80")) +
+  theme(plot.title = element_text(color = "black", size = 12, face = "bold", hjust = 0.5),
+        legend.position = "bottom") +
+  labs(x = "Major Category",
+       title = "Unemployment Rates per Major Category") 
+
+```
+
+### Final Version 
+```{r plot 2 final version data cleaning, include=FALSE}
+plot_2_c <- percents_tidy %>% 
+  select(major, major_category, unemployment_rate_percentage, percent_college_jobs) %>% 
+  arrange(desc(unemployment_rate_percentage)) %>% 
+  slice(1:20)
+```
+
+```{r plot 2 final version}
+plot_2_c %>% 
+  distinct() %>% 
+  ggplot(aes(unemployment_rate_percentage, percent_college_jobs, color = major_category))+
+  geom_point(size = 2) +
+  scale_color_viridis_d(name = "Major Category") +
+  geom_text_repel(aes(label = major),
+                  size = 3) +
+  theme(plot.title = element_text(color = "black", 
+                                  size = 12, 
+                                  face = "bold", 
+                                  hjust = 0.5),
+        legend.position = "bottom") +
+  scale_x_log10("Unemployment Rate", labels = scales::percent) +
+  scale_y_log10("Employment in College Major", labels = scales::percent) +
+  theme(panel.grid.major.y = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        panel.grid.major.x = element_line(color = "gray80")) +
+  labs(x = "Unemployment Rate",
+       y = "Employment in College Major",
+       title = "Comparison of Unemployment Rate \nto College Major Employment Rate",
+       subtitle = "College Majors with the Highest Unemployment Rate") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+
+# Plot 3
+
+Description of Plot 3 {.sidebar}
+--------
+*_Plot 3 Narrative:_* The goal of plot 3 was to use the recent_grads and women_stem data sets to compare trends in the percentage of women working in these fields. I first used the mutate function to create variables for the percentage of men and women working in each major field for the women_stem data set. I then pivoted longer to have a variable with a value for each gender percentage per college major. Similar to the first two plots, because there are so many majors in the data set, I decided to focus specifically on the major category of engineering as it is the category with the most consistently high median salary per engineering major. Therefore, I used the filter function to identify all majors under the engineering category and then plotted the data set in a bar graph using factor reorder to arrange the data set from highest percentage of women employed to lowest percent of women employed. In version 2, I added color to the bars and used geom_text to label each bar with its percentage of women employed. In the final version, I borrowed the idea from one of the class lecture examples and first created two objects to filter out the top ten majors and bottom ten majors for percentage of women employed. After this step, I use bind_rows within the geom_point function to combine these two objects together to compare percentage of women employed on the x-axis and men employed on the y-axis. The plot is faceted by major category and labeled in each plot by specific major. What I really like about this plot is that it accurately depicts my field of speech-language pathology which is almost entirely female. Lastly, I thought it would be fun to incorporate this same data into a gt table to get some practice with that function. The gt table didn't render very well into Flexdashboard, so I pivoted to a reactable table. 
+
+Column {.tabset data-width=1000}
+-----------------------------------------------------------------------
+
+
+### Version 1
+```{r plot 3 data cleaning, include=FALSE}
+
+stem_percentages <- women_stem %>% 
+  mutate(percent_men = men/total,
+         percent_women = women/total)
+
+stem_tidy <- stem_percentages %>% 
+  pivot_longer(
+    cols = c(10:11),
+    names_to = "sex",
+    values_to = "sex_percentages"
+  )
+
+engineering <- stem_percentages %>% 
+  filter(major_category == "Engineering")
+
+engineering_2 <- stem_tidy %>% 
+  filter(major_category == "Engineering")
+
+```
+
+```{r plot 3 version 1}
+ggplot(engineering, aes(fct_reorder(major, percent_women), percent_women)) +
+  geom_col() +
+  coord_flip() +
+  scale_y_continuous("Percentage of Women Employed", labels = scales::percent) 
+
+```
+
+### Version 2
+```{r plot 3 version 2}
+ggplot(engineering, aes(fct_reorder(major, percent_women), percent_women)) +
+  geom_col(fill = "#0000FF",
+          alpha = 0.7) +
+  geom_text(aes(major, percent_women, label = scales::percent(percent_women, digits = 2)),
+            nudge_y = -0.05,
+            size = 3,
+            color = "white") +
+  coord_flip() +
+  scale_y_continuous("Percentage of Women Employed", labels = scales::percent) 
+
+```
+
+### Final Version
+```{r plot 3 final version data cleaning, include=FALSE}
+top_10 <- stem_percentages %>% 
+  group_by(major_category) %>% 
+  top_n(2, percent_women)
+
+bottom_10 <- stem_percentages %>% 
+  group_by(major_category) %>% 
+  top_n(-2, percent_women)
+```
+
+```{r plot 3 final version, fig.width=8, fig.height=6}
+ggplot(stem_percentages, aes(percent_women, percent_men)) +
+  geom_point(color = "gray80") +
+  geom_point(color = "red", data = bind_rows(top_10, bottom_10)) +
+  geom_text_repel(aes(label = major),
+                  data = bind_rows(top_10, bottom_10),
+                  size = 2) +
+  facet_wrap(~major_category) +
+  theme_minimal() +
+  theme(plot.title = element_text(color = "black", 
+                                  size = 12, 
+                                  face = "bold", 
+                                  hjust = 0.5)) +
+  scale_x_log10("Percent Women Employed", labels = scales::percent) +
+  scale_y_log10("Percent Men Employed", labels = scales::percent) +
+  theme(panel.grid.major.y = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        panel.grid.major.x = element_line(color = "gray80")) +
+  theme(plot.title = element_text(color = "black", 
+                                  size = 12, 
+                                  face = "bold", 
+                                  hjust = 0.5)) +
+  labs(title = "Gender Employment Percentages in STEM Related Fields")
+
+```
+
+### GT Table 
+```{r plot 3 gt table data cleaning, include=FALSE}
+table <- bind_rows(top_10, bottom_10) %>% 
+  select(major, median, percent_women, percent_men) 
+```
+
+```{r plot 3 gt table}
+table %>% 
+  gt() %>% 
+  cols_label(major = "College Major",
+             median = "Median Salary",
+             percent_women = "Percent Women Employed",
+             percent_men = "Percent Men Employed") %>% 
+  cols_align(align = "left", columns = vars(major)) %>% 
+  cols_align(align = "center", columns = vars(percent_men, percent_women)) %>% 
+  tab_header(title = "STEM Major Statistics") %>% 
+  fmt_percent(vars(percent_women, percent_men), decimals = 0) %>% 
+  fmt_currency(vars(median), currency = "USD") %>% 
+  cols_align(align = "left", columns = vars(major)) %>% 
+  tab_source_note(source_note = md("Data from [fivethirtyeight](https://https://github.com/fivethirtyeight/data/tree/master/college-majors)"))
+```
+
+### Reactable Table
+```{r plot 3, reactable table data cleaning, include=FALSE}
+
+table_react <- bind_rows(top_10, bottom_10) %>% 
+  select(major_category, major, median, percent_women, percent_men) %>% 
+  rename("Major Category" = major_category,
+         Major = major,
+         "Median Salary" = median,
+         "Percent Women Employed" = percent_women,
+         "Percent Men Employed" = percent_men)
+
+```
+
+```{r plot 3, reactable table}
+
+reactable(table_react, columns = list(
+  "Median Salary" = colDef(format = colFormat(prefix = "$", separators = TRUE, digits = 2)),
+  "Percent Women Employed" = colDef(format = colFormat(percent = TRUE, digits = 2)),
+  "Percent Men Employed" = colDef(format = colFormat(percent = TRUE, digits = 2))
+))
+
+```
+
