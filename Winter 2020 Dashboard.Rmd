@@ -23,10 +23,11 @@ library(knitr)
 library(kableExtra)
 library(reactable)
 library(plotly)
+library(patchwork)
 
 opts_chunk$set(echo = FALSE,
                fig.width = 5,
-               fig.height = 6)
+               fig.height = 6.5)
 
 theme_set(theme_minimal(base_size = 8))
 
@@ -60,10 +61,10 @@ women_stem <- import(here("data", "women-stem.csv"),
 
 The data for this project consists of five data sets from the FiveThirtyEight GitHub page. (https://github.com/fivethirtyeight/data/tree/master/college-majors). All data is from the American Community Survey 2010-2012 Public Use Microdata Series. The plots for this project exclusively used the recent_grads.csv and women_stem.csv data sets, which both contain data on basic earnings and labor force information. Both data sets were arranged in order of median salary for reported college major on the survey. 
 
-*_Plot 1 Narrative:_* I wanted to plot 1 to communicate median salary per either college major or major category. Since there are so many majors in the data set, I decided it would be easier to begin with major category as there were only 16 values. In version 2, I highlighted the education category as we learned in class. For versions 3 and 4, I wanted to explore this distribution with other plots besides a bar graph, so I tried a histogram and density plot with ggridges. For the final version, I decided to go back to the barplot by focusing on the top 20 median salaries per college majors and use color in the plot to identify the major category. I factor reorderded to arrange the college majors on the y-axis (via coord_flip) from greatest to least. As displayed on the plot, the most lucrative college majors are in the major category Engineering. 
+*_Plot 1 Narrative:_* I wanted to plot 1 to communicate median salary per either college major or major category. Since there are so many majors in the data set, I decided it would be easier to begin with major category as there were only 16 values. In version 2, I highlighted the education category as we learned in class. For versions 3 and 4, I wanted to explore this distribution with other plots besides a bar graph, so I tried a histogram and density plot with ggridges. For the final version, I decided to go back to the barplot by focusing on the top 20 median salaries per college majors and use color in the plot to identify the major category. I factor reorderded to arrange the college majors on the y-axis (via coord_flip) from greatest to least. As displayed on the plot, the most lucrative college majors are in the major category Engineering. Following the completion of my presentation, an additonal plot was added to display the bottom 20 median salaries per college major. The use of patchwork was attempted, but I don't think it fits my plots well. 
 
 
-Column {.tabset data-width=1000}
+Column {.tabset data-width=1200}
 -----------------------------------------------------------------------
 
 ### Version 1
@@ -127,7 +128,7 @@ ggplot(recent_grads, aes(median, major_category)) +
 ```
 
 
-### Final Version
+### Top 20 Median Salary
 ```{r plot 1 final version data cleaning, include=FALSE}
 median_top_20 <- recent_grads %>% 
   arrange(desc(median)) %>% 
@@ -146,7 +147,66 @@ ggplot(median_top_20, aes(fct_reorder(major, median), median)) +
   scale_fill_brewer(palette = "Dark2") +
   coord_flip() +
   scale_y_continuous("Median Salary", 
-                     labels = scales::dollar) +
+                     labels = scales::dollar,
+                     expand = c(0, 0)) +
+  theme(panel.grid.major.y = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        panel.grid.major.x = element_line(color = "gray80")) +
+  theme(plot.title = element_text(color = "black", size = 12, face = "bold", hjust = 0.5),
+        legend.position = "bottom") +
+  labs(x = "College Major",
+       y = "Median Salary (Thousands)",
+       fill = "Major Category",
+       title = "Top 20 Median Salaries \nby College Major") 
+```
+
+### Bottom 20 Median Salary
+```{r plot 1 final version addition 1 data cleaning, include=FALSE}
+median_bottom_20 <- recent_grads %>% 
+  arrange(median) %>% 
+  slice(1:20)
+```
+
+```{r plot 1, final version addition 1}
+ggplot(median_bottom_20, aes(fct_reorder(major, median), median)) +
+  geom_col(aes(fill = major_category),
+  alpha = 0.7) +
+  geom_text(aes(major, median, label = scales::dollar(median/1000)),
+            hjust = 1.1,
+            nudge_y = 0.02,
+            size = 3,
+            color = "white") +
+  scale_fill_brewer(palette = "Dark2") +
+  coord_flip() +
+  scale_y_continuous("Median Salary", 
+                     labels = scales::dollar,
+                     expand = c(0, 0)) +
+  theme(panel.grid.major.y = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        panel.grid.major.x = element_line(color = "gray80")) +
+  theme(plot.title = element_text(color = "black", size = 12, face = "bold", hjust = 0.5),
+        legend.position = "bottom") +
+  labs(x = "College Major",
+       y = "Median Salary (Thousands)",
+       fill = "Major Category",
+       title = "Bottom 20 Median Salaries \nby College Major") 
+```
+
+### Patchwork 
+```{r patchwork data preparation, include=FALSE}
+p_1 <- ggplot(median_top_20, aes(fct_reorder(major, median), median)) +
+  geom_col(aes(fill = major_category),
+  alpha = 0.7) +
+  geom_text(aes(major, median, label = scales::dollar(median/1000)),
+            hjust = 1.1,
+            nudge_y = 0.02,
+            size = 3,
+            color = "white") +
+  scale_fill_brewer(palette = "Dark2") +
+  coord_flip() +
+  scale_y_continuous("Median Salary", 
+                     labels = scales::dollar,
+                     expand = c(0, 0)) +
   theme(panel.grid.major.y = element_blank(),
         panel.grid.minor.x = element_blank(),
         panel.grid.major.x = element_line(color = "gray80")) +
@@ -157,7 +217,33 @@ ggplot(median_top_20, aes(fct_reorder(major, median), median)) +
        fill = "Major Category",
        title = "Top 20 Median Salaries \nby College Major") 
 
+p_2 <- ggplot(median_bottom_20, aes(fct_reorder(major, median), median)) +
+  geom_col(aes(fill = major_category),
+  alpha = 0.7) +
+  geom_text(aes(major, median, label = scales::dollar(median/1000)),
+            hjust = 1.1,
+            nudge_y = 0.02,
+            size = 3,
+            color = "white") +
+  scale_fill_brewer(palette = "Dark2") +
+  coord_flip() +
+  scale_y_continuous("Median Salary", 
+                     labels = scales::dollar,
+                     expand = c(0, 0)) +
+  theme(panel.grid.major.y = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        panel.grid.major.x = element_line(color = "gray80")) +
+  theme(plot.title = element_text(color = "black", size = 12, face = "bold", hjust = 0.5),
+        legend.position = "bottom") +
+  labs(x = "College Major",
+       y = "Median Salary (Thousands)",
+       fill = "Major Category",
+       title = "Bottom 20 Median Salaries \nby College Major") 
 
+```
+
+```{r patchwork plot}
+p_1 + p_2
 
 ```
 
